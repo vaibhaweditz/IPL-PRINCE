@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Withdraw Panel</title>
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:'Segoe UI', sans-serif;
+}
+
+body{
+    background:url('background.jpg');
+    background-size:cover;
+    background-position:center;
+    background-attachment:fixed;
+    color:white;
+}
+
+.overlay{
+
+    min-height:100vh;
+
+    padding:30px;
+
+    background:linear-gradient(
+        rgba(0,0,0,0.88),
+        rgba(0,0,0,0.82)
+    );
+
+}
+
+/* PANEL */
+
+.withdraw-panel{
+
+    max-width:700px;
+
+    margin:auto;
+
+    background:rgba(0,0,0,0.45);
+
+    border:1px solid rgba(255,215,0,0.35);
+
+    border-radius:25px;
+
+    padding:35px;
+
+    backdrop-filter:blur(4px);
+
+    box-shadow:
+    0 0 25px rgba(255,215,0,0.15);
+
+}
+
+/* TITLE */
+
+.title{
+
+    text-align:center;
+
+    font-size:42px;
+
+    color:gold;
+
+    margin-bottom:30px;
+
+    font-weight:bold;
+
+}
+
+/* INPUT */
+
+.input-box{
+
+    margin-bottom:20px;
+
+}
+
+.input-box input{
+
+    width:100%;
+
+    padding:15px;
+
+    border:none;
+
+    border-radius:12px;
+
+    background:rgba(255,255,255,0.08);
+
+    border:1px solid rgba(255,215,0,0.2);
+
+    color:gold;
+
+    font-size:16px;
+
+    outline:none;
+
+}
+
+/* BUTTON */
+
+.withdraw-btn{
+
+    width:100%;
+
+    padding:15px;
+
+    border:none;
+
+    border-radius:12px;
+
+    background:linear-gradient(
+        135deg,
+        #d4a017,
+        gold
+    );
+
+    color:black;
+
+    font-size:18px;
+
+    font-weight:bold;
+
+    cursor:pointer;
+
+    transition:0.3s;
+
+}
+
+.withdraw-btn:hover{
+
+    transform:scale(1.03);
+
+}
+
+/* HISTORY */
+
+.history{
+
+    margin-top:40px;
+
+}
+
+.history h2{
+
+    color:gold;
+
+    margin-bottom:20px;
+
+    text-align:center;
+
+}
+
+.history-box{
+
+    background:rgba(255,255,255,0.05);
+
+    padding:15px;
+
+    border-radius:15px;
+
+    margin-bottom:15px;
+
+    border:1px solid rgba(255,215,0,0.15);
+
+}
+
+.amount{
+
+    color:gold;
+
+    font-size:22px;
+
+    font-weight:bold;
+
+}
+
+.time{
+
+    color:#ccc;
+
+    margin-top:5px;
+
+}
+
+.status{
+
+    margin-top:10px;
+
+    font-weight:bold;
+
+}
+
+.pending{
+
+    color:orange;
+
+}
+
+.success{
+
+    color:lime;
+
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="overlay">
+
+<div class="withdraw-panel">
+
+    <div class="title">
+        WITHDRAW PANEL
+    </div>
+
+    <div class="input-box">
+        <input type="number"
+        id="amount"
+        placeholder="Enter Withdraw Amount">
+    </div>
+
+    <div class="input-box">
+        <input type="text"
+        id="upi"
+        placeholder="Enter UPI ID">
+    </div>
+
+    <button class="withdraw-btn"
+    onclick="addWithdraw()">
+
+    SUBMIT WITHDRAW
+
+    </button>
+
+    <!-- HISTORY -->
+
+    <div class="history">
+
+        <h2>WITHDRAW HISTORY</h2>
+
+        <div id="historyData"></div>
+
+    </div>
+
+</div>
+
+</div>
+
+<script type="module">
+
+/* FIREBASE IMPORT */
+
+import { initializeApp }
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
+import {
+getDatabase,
+ref,
+set,
+onValue,
+update
+}
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+/* FIREBASE CONFIG */
+
+const firebaseConfig = {
+
+  apiKey: "AIzaSyCqyUBYsuSwbI8r9h6G-o9l1mx4F8yqSSs",
+
+  authDomain: "prince-ipl-2026.firebaseapp.com",
+
+  databaseURL:
+  "https://prince-ipl-2026-default-rtdb.firebaseio.com",
+
+  projectId: "prince-ipl-2026",
+
+  storageBucket:
+  "prince-ipl-2026.firebasestorage.app",
+
+  messagingSenderId: "749359099540",
+
+  appId:
+  "1:749359099540:web:978b89a756824d07998e81",
+
+  measurementId: "G-0G62WRXGVC"
+
+};
+
+/* INIT */
+
+const app = initializeApp(firebaseConfig);
+
+const db = getDatabase(app);
+
+/* ADD WITHDRAW */
+
+window.addWithdraw = function(){
+
+    let amount =
+    document.getElementById("amount").value;
+
+    let upi =
+    document.getElementById("upi").value;
+
+    if(amount == "" || upi == ""){
+
+        alert("Fill all details");
+
+        return;
+
+    }
+
+    let time =
+    new Date().toLocaleString();
+
+    let id = Date.now();
+/* CHECK BALANCE */
+
+let currentBalance =
+parseInt(
+localStorage.getItem("friendBalance")
+?.replace("₹","")
+|| 0
+);
+
+if(parseInt(amount) > currentBalance){
+
+    alert("Insufficient Balance");
+
+    return;
+
+}
+
+/* NEW BALANCE */
+
+let newBalance =
+currentBalance - parseInt(amount);
+
+/* SAVE NEW BALANCE */
+
+localStorage.setItem(
+"friendBalance",
+"₹"+newBalance
+);
+    let data = {
+
+        amount: amount,
+
+        upi: upi,
+
+        time: time,
+
+        status: "PENDING"
+
+    };
+
+    // SAVE FIREBASE
+
+    set(
+        ref(db,"withdraws/"+id),
+        data
+    );
+
+    // CLEAR INPUTS
+
+    document.getElementById("amount").value="";
+    document.getElementById("upi").value="";
+
+}
+
+/* LOAD HISTORY */
+
+onValue(ref(db,"withdraws"),(snapshot)=>{
+
+    let data = snapshot.val();
+
+    let html = "";
+
+    for(let id in data){
+
+        let item = data[id];
+
+        let statusClass =
+        item.status == "SUCCESSFUL"
+        ? "success"
+        : "pending";
+
+        html += `
+
+        <div class="history-box">
+
+            <div class="amount">
+            ₹${item.amount}
+            </div>
+
+            <div>
+            UPI: ${item.upi}
+            </div>
+
+            <div class="time">
+            ${item.time}
+            </div>
+
+            <div class="status ${statusClass}">
+            ${item.status}
+            </div>
+
+        
+
+        </div>
+
+        `;
+
+    }
+
+    document
+    .getElementById("historyData")
+    .innerHTML = html;
+
+});
+
+/* APPROVE */
+
+window.approveWithdraw = function(id){
+
+    update(
+
+        ref(db,"withdraws/"+id),
+
+        {
+
+            status:"SUCCESSFUL"
+
+        }
+
+    );
+
+}
+
+</script>
+
+</body>
+</html>

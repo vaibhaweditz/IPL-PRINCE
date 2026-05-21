@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0">
+
+<title>Withdraw Requests Admin</title>
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:'Segoe UI',sans-serif;
+}
+
+body{
+    background:url('background.jpg');
+    background-size:cover;
+    background-position:center;
+    background-attachment:fixed;
+    color:white;
+}
+
+.overlay{
+
+    min-height:100vh;
+
+    padding:30px;
+
+    background:linear-gradient(
+        rgba(0,0,0,0.88),
+        rgba(0,0,0,0.82)
+    );
+
+}
+
+.panel{
+
+    max-width:900px;
+
+    margin:auto;
+
+    background:rgba(0,0,0,0.45);
+
+    border:1px solid rgba(255,215,0,0.35);
+
+    border-radius:25px;
+
+    padding:35px;
+
+    backdrop-filter:blur(4px);
+
+    box-shadow:
+    0 0 25px rgba(255,215,0,0.15);
+
+}
+
+.title{
+
+    text-align:center;
+
+    font-size:42px;
+
+    color:gold;
+
+    margin-bottom:35px;
+
+    font-weight:bold;
+
+}
+
+.request-box{
+
+    background:rgba(255,255,255,0.05);
+
+    border:1px solid rgba(255,215,0,0.15);
+
+    border-radius:18px;
+
+    padding:20px;
+
+    margin-bottom:20px;
+
+}
+
+.amount{
+
+    font-size:30px;
+
+    color:gold;
+
+    font-weight:bold;
+
+    margin-bottom:10px;
+
+}
+
+.text{
+
+    margin-top:8px;
+
+    font-size:17px;
+
+}
+
+.status{
+
+    margin-top:15px;
+
+    font-size:18px;
+
+    font-weight:bold;
+
+}
+
+.pending{
+    color:orange;
+}
+
+.success{
+    color:lime;
+}
+
+.failed{
+    color:red;
+}
+
+.remark-input{
+
+    width:100%;
+
+    padding:14px;
+
+    margin-top:18px;
+
+    border:none;
+
+    border-radius:12px;
+
+    background:rgba(255,255,255,0.08);
+
+    border:1px solid rgba(255,215,0,0.2);
+
+    color:white;
+
+    outline:none;
+
+    font-size:15px;
+
+}
+
+.btns{
+
+    display:flex;
+
+    gap:15px;
+
+    margin-top:18px;
+
+    flex-wrap:wrap;
+
+}
+
+button{
+
+    flex:1;
+
+    min-width:150px;
+
+    padding:14px;
+
+    border:none;
+
+    border-radius:12px;
+
+    font-size:16px;
+
+    font-weight:bold;
+
+    cursor:pointer;
+
+    transition:0.3s;
+
+}
+
+.approve-btn{
+
+    background:linear-gradient(
+        135deg,
+        #00b300,
+        lime
+    );
+
+    color:black;
+
+}
+
+.failed-btn{
+
+    background:linear-gradient(
+        135deg,
+        #c40000,
+        red
+    );
+
+    color:white;
+
+}
+
+button:hover{
+
+    transform:scale(1.03);
+
+}
+
+.remark{
+
+    margin-top:15px;
+
+    color:#ccc;
+
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="overlay">
+
+<div class="panel">
+
+<div class="title">
+WITHDRAW REQUESTS
+</div>
+
+<div id="requests"></div>
+
+</div>
+
+</div>
+
+<script type="module">
+
+import { initializeApp }
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
+import {
+getDatabase,
+ref,
+onValue,
+update
+}
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+/* FIREBASE */
+
+const firebaseConfig = {
+
+  apiKey: "AIzaSyCqyUBYsuSwbI8r9h6G-o9l1mx4F8yqSSs",
+
+  authDomain: "prince-ipl-2026.firebaseapp.com",
+
+  databaseURL:
+  "https://prince-ipl-2026-default-rtdb.firebaseio.com",
+
+  projectId: "prince-ipl-2026",
+
+  storageBucket:
+  "prince-ipl-2026.firebasestorage.app",
+
+  messagingSenderId: "749359099540",
+
+  appId:
+  "1:749359099540:web:978b89a756824d07998e81",
+
+  measurementId: "G-0G62WRXGVC"
+
+};
+
+const app = initializeApp(firebaseConfig);
+
+const db = getDatabase(app);
+
+/* LOAD REQUESTS */
+
+onValue(ref(db,"withdraws"),(snapshot)=>{
+
+    let data = snapshot.val();
+
+    let html = "";
+
+    for(let id in data){
+
+        let item = data[id];
+
+        let statusClass = "pending";
+
+        if(item.status == "SUCCESSFUL"){
+            statusClass = "success";
+        }
+
+        if(item.status == "FAILED"){
+            statusClass = "failed";
+        }
+
+        html += `
+
+        <div class="request-box">
+
+            <div class="amount">
+            ₹${item.amount}
+            </div>
+
+            <div class="text">
+            UPI: ${item.upi}
+            </div>
+
+            <div class="text">
+            ${item.time}
+            </div>
+
+            <div class="status ${statusClass}">
+            ${item.status}
+            </div>
+
+            <input
+            type="text"
+            placeholder="Enter Remarks"
+            class="remark-input"
+            id="remark-${id}">
+
+            <div class="btns">
+
+                <button
+                class="approve-btn"
+                onclick="approveWithdraw('${id}')">
+
+                APPROVE
+
+                </button>
+
+                <button
+                class="failed-btn"
+                onclick="failedWithdraw('${id}')">
+
+                FAILED
+
+                </button>
+
+            </div>
+
+            <div class="remark">
+
+            Remarks:
+            ${item.remarks || "No remarks"}
+
+            </div>
+
+        </div>
+
+        `;
+
+    }
+
+    document
+    .getElementById("requests")
+    .innerHTML = html;
+
+});
+
+/* APPROVE */
+
+window.approveWithdraw = function(id){
+
+    let remark =
+    document.getElementById(
+    "remark-"+id
+    ).value;
+
+    update(
+
+        ref(db,"withdraws/"+id),
+
+        {
+
+            status:"SUCCESSFUL",
+
+            remarks: remark
+
+        }
+
+    );
+
+}
+
+/* FAILED */
+
+window.failedWithdraw = function(id){
+
+    let remark =
+    document.getElementById(
+    "remark-"+id
+    ).value;
+
+    update(
+
+        ref(db,"withdraws/"+id),
+
+        {
+
+            status:"FAILED",
+
+            remarks: remark
+
+        }
+
+    );
+
+}
+
+</script>
+
+</body>
+</html>
