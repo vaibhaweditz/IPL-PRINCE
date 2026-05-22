@@ -200,14 +200,24 @@ body{
 }
 
 .pending{
-
     color:orange;
-
 }
 
 .success{
-
     color:lime;
+}
+
+.failed{
+    color:red;
+}
+
+.remarks{
+
+    margin-top:10px;
+
+    color:#ccc;
+
+    font-size:14px;
 
 }
 
@@ -269,7 +279,8 @@ getDatabase,
 ref,
 set,
 onValue,
-update
+update,
+get
 }
 from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
@@ -306,7 +317,7 @@ const db = getDatabase(app);
 
 /* ADD WITHDRAW */
 
-window.addWithdraw = function(){
+window.addWithdraw = async function(){
 
     let amount =
     document.getElementById("amount").value;
@@ -322,38 +333,51 @@ window.addWithdraw = function(){
 
     }
 
+    /* GET CURRENT BALANCE */
+
+    const balanceRef =
+    ref(db,"balances/friendBalance");
+
+    const snapshot =
+    await get(balanceRef);
+
+    let currentBalance =
+    parseInt(
+        String(snapshot.val())
+        .replace("₹","")
+        || 0
+    );
+
+    /* CHECK BALANCE */
+
+    if(parseInt(amount) > currentBalance){
+
+        alert("Insufficient Balance");
+
+        return;
+
+    }
+
+    /* NEW BALANCE */
+
+    let newBalance =
+    currentBalance - parseInt(amount);
+
+    /* UPDATE BALANCE */
+
+    update(ref(db,"balances"),{
+
+        friendBalance:"₹"+newBalance
+
+    });
+
+    /* TIME */
+
     let time =
     new Date().toLocaleString();
 
     let id = Date.now();
-/* CHECK BALANCE */
 
-let currentBalance =
-parseInt(
-localStorage.getItem("friendBalance")
-?.replace("₹","")
-|| 0
-);
-
-if(parseInt(amount) > currentBalance){
-
-    alert("Insufficient Balance");
-
-    return;
-
-}
-
-/* NEW BALANCE */
-
-let newBalance =
-currentBalance - parseInt(amount);
-
-/* SAVE NEW BALANCE */
-
-localStorage.setItem(
-"friendBalance",
-"₹"+newBalance
-);
     let data = {
 
         amount: amount,
@@ -362,18 +386,20 @@ localStorage.setItem(
 
         time: time,
 
-        status: "PENDING"
+        status: "PENDING",
+
+        remarks: ""
 
     };
 
-    // SAVE FIREBASE
+    /* SAVE FIREBASE */
 
     set(
         ref(db,"withdraws/"+id),
         data
     );
 
-    // CLEAR INPUTS
+    /* CLEAR INPUTS */
 
     document.getElementById("amount").value="";
     document.getElementById("upi").value="";
@@ -388,14 +414,29 @@ onValue(ref(db,"withdraws"),(snapshot)=>{
 
     let html = "";
 
+    if(!data){
+
+        document
+        .getElementById("historyData")
+        .innerHTML = "";
+
+        return;
+
+    }
+
     for(let id in data){
 
         let item = data[id];
 
-        let statusClass =
-        item.status == "SUCCESSFUL"
-        ? "success"
-        : "pending";
+        let statusClass = "pending";
+
+        if(item.status == "SUCCESSFUL"){
+            statusClass = "success";
+        }
+
+        if(item.status == "FAILED"){
+            statusClass = "failed";
+        }
 
         html += `
 
@@ -417,7 +458,10 @@ onValue(ref(db,"withdraws"),(snapshot)=>{
             ${item.status}
             </div>
 
-        
+            <div class="remarks">
+            Remarks:
+            ${item.remarks || "No remarks"}
+            </div>
 
         </div>
 
@@ -430,24 +474,6 @@ onValue(ref(db,"withdraws"),(snapshot)=>{
     .innerHTML = html;
 
 });
-
-/* APPROVE */
-
-window.approveWithdraw = function(id){
-
-    update(
-
-        ref(db,"withdraws/"+id),
-
-        {
-
-            status:"SUCCESSFUL"
-
-        }
-
-    );
-
-}
 
 </script>
 
